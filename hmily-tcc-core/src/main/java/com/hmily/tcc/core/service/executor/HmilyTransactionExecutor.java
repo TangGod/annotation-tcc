@@ -83,23 +83,31 @@ public class HmilyTransactionExecutor {
     /**
      * transaction begin.
      *
+     * 该方法为发起方第一次调用
+     * 也是tcc事务的入口
+     *
      * @param point cut point.
      * @return TccTransaction
      */
     public TccTransaction begin(final ProceedingJoinPoint point) {
         LogUtil.debug(LOGGER, () -> "......hmily transaction！start....");
         //build tccTransaction
+        //构建tccTransaction信息
         final TccTransaction tccTransaction = buildTccTransaction(point, TccRoleEnum.START.getCode(), null);
         //save tccTransaction in threadLocal
+        //缓存当前事物信息
         CURRENT.set(tccTransaction);
         //publishEvent
+        //这是做什么的？？
         hmilyTransactionEventPublisher.publishEvent(tccTransaction, EventTypeEnum.SAVE.getCode());
         //set TccTransactionContext this context transfer remote
+        //设置tcc事务上下文，这个类会传递给远端
         TccTransactionContext context = new TccTransactionContext();
         //set action is try
-        context.setAction(TccActionEnum.TRYING.getCode());
-        context.setTransId(tccTransaction.getTransId());
-        context.setRole(TccRoleEnum.START.getCode());
+        context.setAction(TccActionEnum.TRYING.getCode());//设置执行动作为try
+        context.setTransId(tccTransaction.getTransId());//设置事务id
+        context.setRole(TccRoleEnum.START.getCode());//发起者
+        //当前角色为，事物发起者的时候，初始化TransactionContextLocal 的 context
         TransactionContextLocal.getInstance().set(context);
         return tccTransaction;
     }
@@ -172,6 +180,7 @@ public class HmilyTransactionExecutor {
         }
         Optional.ofNullable(getCurrentTransaction())
                 .ifPresent(c -> {
+                    //保存参与者
                     c.registerParticipant(participant);
                     updateParticipant(c);
                 });
@@ -322,33 +331,52 @@ public class HmilyTransactionExecutor {
 
     private TccTransaction buildTccTransaction(final ProceedingJoinPoint point, final int role, final String transId) {
         TccTransaction tccTransaction;
+        //如果transId不为空
         if (StringUtils.isNoneBlank(transId)) {
             tccTransaction = new TccTransaction(transId);
         } else {
             tccTransaction = new TccTransaction();
         }
+        //状态：开始执行try
         tccTransaction.setStatus(TccActionEnum.PRE_TRY.getCode());
+        //路由：发起者
         tccTransaction.setRole(role);
         MethodSignature signature = (MethodSignature) point.getSignature();
+        //获取要执行的方法
         Method method = signature.getMethod();
+        //获取执行方法的class
         Class<?> clazz = point.getTarget().getClass();
+        //获取执行方法的参数值数组
         Object[] args = point.getArgs();
+        //获取tcc注解
         final Tcc tcc = method.getAnnotation(Tcc.class);
+        //事物模式,默认为 TCC： try,confirm,cancel模式
         final TccPatternEnum pattern = tcc.pattern();
+        //目标实现类的包名+类名
         tccTransaction.setTargetClass(clazz.getName());
+        //要执行的方法名
         tccTransaction.setTargetMethod(method.getName());
+        //模式的code
         tccTransaction.setPattern(pattern.getCode());
+        //confirm方法信息类(可使用这个class 来反射执行confirm方法)
         TccInvocation confirmInvocation = null;
+        //confirm方法名
         String confirmMethodName = tcc.confirmMethod();
+        //cancel方法
         String cancelMethodName = tcc.cancelMethod();
+        //写了confirm方法,则构建实体
         if (StringUtils.isNoneBlank(confirmMethodName)) {
             confirmInvocation = new TccInvocation(clazz, confirmMethodName, method.getParameterTypes(), args);
         }
+        //cancel方法信息类(可使用这个class 来反射执行cancel方法)
         TccInvocation cancelInvocation = null;
+        //写了cancel方法,则构建实体
         if (StringUtils.isNoneBlank(cancelMethodName)) {
             cancelInvocation = new TccInvocation(clazz, cancelMethodName, method.getParameterTypes(), args);
         }
+        //构造一个参与者,没有 confirm和cancel方法的  对应的属性,则为空
         final Participant participant = new Participant(tccTransaction.getTransId(), confirmInvocation, cancelInvocation);
+        //注册一个参与者
         tccTransaction.registerParticipant(participant);
         return tccTransaction;
     }

@@ -64,6 +64,7 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
 
+    //tcc分布式事务的发起者
     @Override
     @Tcc(confirmMethod = "confirmOrderStatus", cancelMethod = "cancelOrderStatus")
     public void makePayment(Order order) {
@@ -90,6 +91,7 @@ public class PaymentServiceImpl implements PaymentService {
         accountDTO.setUserId(order.getUserId());
 
         LOGGER.debug("===========执行springcloud扣减资金接口==========");
+        //每个方法都使用 HmilyFeignHandler代理
         accountClient.payment(accountDTO);
 
 

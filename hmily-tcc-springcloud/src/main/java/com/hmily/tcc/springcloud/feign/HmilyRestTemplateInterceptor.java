@@ -30,11 +30,14 @@ import org.springframework.context.annotation.Configuration;
  * @author xiaoyu
  */
 @Configuration
+//每次接口调用都会先执行这个请求拦截器
 public class HmilyRestTemplateInterceptor implements RequestInterceptor {
 
     @Override
     public void apply(final RequestTemplate requestTemplate) {
+        //当前事物上下文
         final TccTransactionContext tccTransactionContext = TransactionContextLocal.getInstance().get();
+        //把事物上下文 放进请求的head中 key：TCC_TRANSACTION_CONTEXT
         requestTemplate.header(CommonConstant.TCC_TRANSACTION_CONTEXT, GsonUtils.getInstance().toJson(tccTransactionContext));
     }
 

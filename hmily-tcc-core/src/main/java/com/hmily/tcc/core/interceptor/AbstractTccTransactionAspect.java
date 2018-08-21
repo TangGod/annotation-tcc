@@ -50,6 +50,7 @@ public abstract class AbstractTccTransactionAspect {
      */
     @Around("hmilyTccInterceptor()")
     public Object interceptTccMethod(final ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+        //不同的框架调用不同的 ：interceptor(proceedingJoinPoint);
         return tccTransactionInterceptor.interceptor(proceedingJoinPoint);
     }
 

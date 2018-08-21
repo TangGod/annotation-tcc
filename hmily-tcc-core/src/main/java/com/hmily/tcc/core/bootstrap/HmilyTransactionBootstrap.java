@@ -41,6 +41,7 @@ public class HmilyTransactionBootstrap extends TccConfig implements ApplicationC
 
     @Override
     public void setApplicationContext(final ApplicationContext applicationContext) throws BeansException {
+        //保存spring的上下文
         SpringBeanUtils.getInstance().setCfgContext((ConfigurableApplicationContext) applicationContext);
         start(this);
     }

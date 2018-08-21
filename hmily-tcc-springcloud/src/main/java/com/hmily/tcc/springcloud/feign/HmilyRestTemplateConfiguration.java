@@ -35,6 +35,9 @@ public class HmilyRestTemplateConfiguration {
      *
      * @return Feign.Builder
      */
+    //@FeignClient 注解的class 初始化之后 会执行这个方法；不同的接口实现,获取不同的HmilyFeignHandler
+    //@Bean 使Feign.Builder 默认使用当前方法
+    //每个@FeignClient的接口 都会调用一次这个方法
     @Bean
     @Scope("prototype")
     public Feign.Builder feignBuilder() {
@@ -45,6 +48,7 @@ public class HmilyRestTemplateConfiguration {
      * build InvocationHandlerFactory.
      * @return InvocationHandlerFactory
      */
+    //@FeignClient 注解的class 初始化之后 会执行这个方法
     @Bean
     public InvocationHandlerFactory invocationHandlerFactory() {
         return (target, dispatch) -> {

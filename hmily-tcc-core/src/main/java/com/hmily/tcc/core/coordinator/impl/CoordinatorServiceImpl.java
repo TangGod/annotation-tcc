@@ -46,10 +46,17 @@ public class CoordinatorServiceImpl implements CoordinatorService {
 
     @Override
     public void start(final TccConfig tccConfig) {
+        //获取应用名称   如果RepositorySuffix 没在配置文件声明的话  则默认使用 spring.application.name
         final String repositorySuffix = buildRepositorySuffix(tccConfig.getRepositorySuffix());
+        //获取上一步加载的spi资源信息
         coordinatorRepository = SpringBeanUtils.getInstance().getBean(CoordinatorRepository.class);
+        //初始化spi 协调资源存储
+        //初始化相应的存储实现类的数据源配置
         coordinatorRepository.init(repositorySuffix, tccConfig);
-        new ScheduledService(tccConfig, coordinatorRepository).scheduledRollBack();
+        // 初始化 协调资源线程池
+        new ScheduledService(tccConfig, coordinatorRepository)
+                //定时执行补偿
+                .scheduledRollBack();
     }
 
     @Override

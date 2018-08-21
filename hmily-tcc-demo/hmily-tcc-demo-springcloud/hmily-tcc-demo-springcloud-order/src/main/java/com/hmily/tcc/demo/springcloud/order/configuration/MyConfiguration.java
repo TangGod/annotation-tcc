@@ -33,19 +33,26 @@ import org.springframework.context.annotation.Scope;
 @Configuration
 public class MyConfiguration {
 
+    //@FeignClient 注解的class 初始化之后 会执行这个方法；不同的接口实现,获取不同的HmilyFeignHandler
+    //@Bean 使Feign.Builder 默认使用当前方法
+    //每个@FeignClient的接口 都会调用一次这个方法
     @Bean
     @Scope("prototype")
     public Feign.Builder feignBuilder() {
         return Feign.builder()
                 .requestInterceptor(new HmilyRestTemplateInterceptor())
+                //设置代理类
                 .invocationHandlerFactory(invocationHandlerFactory());
     }
 
+    //@FeignClient 注解的class 初始化之后 会执行这个方法
     @Bean
     public InvocationHandlerFactory invocationHandlerFactory() {
         return (target, dispatch) -> {
             HmilyFeignHandler handler = new HmilyFeignHandler();
             //handler.setTarget(target);
+
+            //HmilyFeignHandler.handlers
             handler.setHandlers(dispatch);
             return handler;
         };

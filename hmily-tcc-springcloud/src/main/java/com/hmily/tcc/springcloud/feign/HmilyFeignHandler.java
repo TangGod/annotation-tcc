@@ -40,29 +40,41 @@ import java.util.Objects;
  *
  * @author xiaoyu
  */
+//实现了InvocationHandler接口  应该是根据 接口类型  来自动注入相应的HmilyFeignHandler
+//不同的接口 有不同的HmilyFeignHandler
 public class HmilyFeignHandler implements InvocationHandler {
 
-    private Map<Method, MethodHandler> handlers;
+    private Map<Method, MethodHandler> handlers;//项目初始化时候 会赋值  实现了@FeignClient 注解的class  当前class里的接口信息都存在这
 
+    //每个方法都使用 HmilyFeignHandler代理
     @Override
     public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
+        //Object则直接执行方法
         if (Object.class.equals(method.getDeclaringClass())) {
             return method.invoke(this, args);
         } else {
             final Tcc tcc = method.getAnnotation(Tcc.class);
+            //不是 事物方法的话  则直接执行
             if (Objects.isNull(tcc)) {
                 return this.handlers.get(method).invoke(args);
             }
+            //开始执行事物方法
             try {
+                //因为事物发起者执行的时候  初始化了事物上下文  所以这里可以直接获取
                 final TccTransactionContext tccTransactionContext = TransactionContextLocal.getInstance().get();
+                //方法调用的时候 都会执行这个class（目前看的代码是：事物发起者调用时 会执行begin方法）
                 final HmilyTransactionExecutor hmilyTransactionExecutor =
                         SpringBeanUtils.getInstance().getBean(HmilyTransactionExecutor.class);
+
+                //执行方法 (会进入拦截器 HmilyRestTemplateInterceptor )并把事物上下文对象 丢到head中
                 final Object invoke = this.handlers.get(method).invoke(args);
+                //构建一个Participant对象  属性包括：事物id、协调方法：confirm、cancel 的方法
                 final Participant participant = buildParticipant(tcc, method, args, tccTransactionContext);
+                //提供者
                 if (tccTransactionContext.getRole() == TccRoleEnum.PROVIDER.getCode()) {
                     hmilyTransactionExecutor.registerByNested(tccTransactionContext.getTransId(),
                             participant);
-                } else {
+                } else {//发起者、消费者、本地调用
                     hmilyTransactionExecutor.enlistParticipant(participant);
                 }
                 return invoke;

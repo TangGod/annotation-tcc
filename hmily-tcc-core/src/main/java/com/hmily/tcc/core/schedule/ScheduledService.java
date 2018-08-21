@@ -68,6 +68,7 @@ public class ScheduledService {
     public ScheduledService(final TccConfig tccConfig, final CoordinatorRepository coordinatorRepository) {
         this.tccConfig = tccConfig;
         this.coordinatorRepository = coordinatorRepository;
+        // 初始化 协调资源线程池
         this.scheduledExecutorService = new ScheduledThreadPoolExecutor(1, HmilyThreadFactory.create("tccRollBackService", true));
     }
 

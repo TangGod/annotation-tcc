@@ -42,6 +42,14 @@ public class StarterHmilyTransactionHandler implements HmilyTransactionHandler {
         this.hmilyTransactionExecutor = hmilyTransactionExecutor;
     }
 
+    /**
+     * 分布式事务处理接口
+     *
+     * @param point   point 切点
+     * @param context 信息
+     * @return Object
+     * @throws Throwable 异常
+     */
     @Override
     public Object handler(final ProceedingJoinPoint point, TccTransactionContext context)
             throws Throwable {
@@ -49,7 +57,9 @@ public class StarterHmilyTransactionHandler implements HmilyTransactionHandler {
         try {
             TccTransaction tccTransaction;
             context = TransactionContextLocal.getInstance().get();
+            //当前角色为，事物发起者的时候，初始化TransactionContextLocal 的 context
             if (context == null) {
+                //开始事物,执行完之后 context 则被初始化完毕
                 tccTransaction = hmilyTransactionExecutor.begin(point);
                 try {
                     //execute try
